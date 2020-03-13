@@ -1,0 +1,57 @@
+<div cdkDropListGroup>
+  <div class="example-container">
+    <h2>Variables</h2>
+  
+    <div
+      cdkDropList
+      [cdkDropListData]="availableVariables"
+      class="example-list"
+      (cdkDropListDropped)="onVariableDropped($event)">
+      <div class="example-box" *ngFor="let item of availableVariables" cdkDrag>{{item.label}}</div>
+    </div>
+  </div>
+  
+  <div class="example-container">
+    <h2>Filas</h2>
+  
+    <div
+      cdkDropList
+      [cdkDropListData]="chosenRows"
+      class="example-list"
+      (cdkDropListDropped)="onVariableDropped($event)">
+      <div class="example-box" *ngFor="let item of chosenRows" cdkDrag>{{item.label}}</div>
+    </div>
+  </div>  
+
+  <div class="example-container">
+    <h2>Columnas</h2>
+  
+    <div
+      cdkDropList
+      [cdkDropListData]="chosenColumns"
+      class="example-list"
+      (cdkDropListDropped)="onVariableDropped($event)">
+      <div class="example-box" *ngFor="let item of chosenColumns" cdkDrag>{{item.label}}</div>
+    </div>
+  </div>  
+</div>
+
+<div class="example-container mat-elevation-z8">
+  <table mat-table [dataSource]="generatedRows">
+    <ng-container *ngFor="let columnObject of tableColumns" matColumnDef="{{columnObject.columnName}}">
+      <th mat-header-cell *matHeaderCellDef>{{columnObject.label}}</th>
+      <td mat-cell *matCellDef="let element" (click)="onCellClicked(element)">
+        <span *ngIf="element[columnObject.propertyName].isHeader">{{element[columnObject.propertyName].headerData.label}}</span>
+        <span *ngIf="!element[columnObject.propertyName].isHeader">{{element[columnObject.propertyName].stringValue}}</span>
+      </td>
+    </ng-container>
+    
+    <tr mat-header-row *matHeaderRowDef="columnNames"></tr>
+    <tr mat-row *matRowDef="let row; columns: columnNames;"></tr>
+  </table>
+</div>
+
+
+<!-- Copyright 2019 Google LLC. All Rights Reserved.
+    Use of this source code is governed by an MIT-style license that
+    can be found in the LICENSE file at http://angular.io/license -->
