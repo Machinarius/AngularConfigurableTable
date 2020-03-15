@@ -66,21 +66,16 @@ export default class TableController {
             columnHeaders.unshift(this.createRowHeadersElement(ColumnHeader));
             columnHeaders.push(this.createRowSumColumnHeader());
 
-            //rowHeaders.unshift(this.createRowHeadersElement(RowHeader));
             rowHeaders.push(this.createColumnSumRowHeader());
         }
 
         let rows: IRowElement[] = [];
-        if (rowHeaders.length == 0) {
-            rows = this.createColumnSumRow(columnHeaders);
-        }
-
-        if (columnHeaders.length == 0) {
-            rows = this.createRowSumRow(rowHeaders);
-        }
-
         if (columnHeaders.length > 0 && rowHeaders.length > 0) {
             rows = this.createTableRows(rowHeaders, columnHeaders);
+        } else if (rowHeaders.length == 0) {
+            rows = this.createColumnSumRow(columnHeaders);
+        } if (columnHeaders.length == 0) {
+            rows = this.createRowSumRow(rowHeaders);
         }
 
         return {
@@ -92,11 +87,12 @@ export default class TableController {
     private createColumnSumRow(columnHeaders: ITableHeader[]): IRowElement[] {
         let rowData: IRowElement = {};
         let fakeHeader = this.createColumnSumRowHeader();
-        let keysAndCells: [string, ITableCell][] = columnHeaders.map(cHeader => [cHeader.propertyName, this.generateCell(fakeHeader, cHeader)]);
+        let keysAndCells: [string, ITableCell][] = columnHeaders.map(cHeader => [cHeader.columnName, this.generateCell(fakeHeader, cHeader)]);
         keysAndCells.forEach((keyAndCell) => {
             let key = keyAndCell[0];
             let cell = keyAndCell[1];
 
+            console.log(`key=${key}=${cell.stringValue}`);
             rowData[key] = cell;
         });
 
@@ -106,7 +102,7 @@ export default class TableController {
     private createRowSumRow(rowHeaders: ITableHeader[]): IRowElement[] {
         let rowData: IRowElement = {};
         let fakeHeader = this.createRowSumColumnHeader();
-        let keysAndCells: [string, ITableCell][] = rowHeaders.map(rHeader => [rHeader.propertyName, this.generateCell(fakeHeader, rHeader)]);
+        let keysAndCells: [string, ITableCell][] = rowHeaders.map(rHeader => [rHeader.columnName, this.generateCell(fakeHeader, rHeader)]);
         keysAndCells.forEach((keyAndCell) => {
             let key = keyAndCell[0];
             let cell = keyAndCell[1];
@@ -120,7 +116,7 @@ export default class TableController {
     private createTableRows(rowHeaders: ITableHeader[], columnHeaders: ITableHeader[]): IRowElement[] {
         let rows = rowHeaders.map<IRowElement>(rHeader => {
             let rowData: IRowElement = {};
-            let keysAndCells: [string, ITableCell][] = columnHeaders.map(cHeader => [cHeader.propertyName, this.generateCell(rHeader, cHeader)]);
+            let keysAndCells: [string, ITableCell][] = columnHeaders.map(cHeader => [cHeader.columnName, this.generateCell(rHeader, cHeader)]);
             keysAndCells.forEach((keyAndCell) => {
                 let key = keyAndCell[0];
                 let cell = keyAndCell[1];
