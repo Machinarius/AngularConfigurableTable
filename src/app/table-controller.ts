@@ -60,7 +60,8 @@ export default class TableController {
     }
 
     public contractColumn(header: ITableHeader) {
-        this.expandedColumns.delete(header.columnName);
+        let columnsToContract = [...this.expandedColumns].filter(colName => colName.startsWith(header.columnName));
+        columnsToContract.forEach(colName => this.expandedColumns.delete(colName));
         console.log("Expanded columns: " + [...this.expandedColumns]);
     }
 
