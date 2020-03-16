@@ -56,10 +56,12 @@ export default class TableController {
 
     public expandColumn(header: ITableHeader) {
         this.expandedColumns.add(header.columnName);
+        console.log("Expanded columns: " + [...this.expandedColumns]);
     }
 
     public contractColumn(header: ITableHeader) {
         this.expandedColumns.delete(header.columnName);
+        console.log("Expanded columns: " + [...this.expandedColumns]);
     }
 
     public get tableData(): ITableData {
@@ -271,17 +273,18 @@ export default class TableController {
             return primaryVariableHeaders;
         }
 
+        let [secondaryVariable, ...tertiaryVariables] = remainingVariables;
+        let secondaryHeaders = this.computeVariableHeaders(secondaryVariable, tertiaryVariables);
+
         let expandedColumns = primaryVariableHeaders.map(vHeader => {
             let isExpanded = this.expandedColumns.has(vHeader.columnName);
             if (!isExpanded) {
                 return new Array<ITableHeader>(vHeader);
             }
 
-            let [secondaryVariable, ...tertiaryVariables] = remainingVariables;
-            let secondaryHeaders = this.computeVariableHeaders(secondaryVariable, tertiaryVariables, vHeader);
-
             if (secondaryHeaders.length > 0) {
                 vHeader.isExpanded = true;
+                secondaryHeaders.forEach(sHeader => sHeader.parent = vHeader);
             }
             secondaryHeaders.unshift(vHeader);
 
@@ -291,7 +294,7 @@ export default class TableController {
         return expandedColumns;
     }
 
-    private computeVariableHeaders(currentVariable: ITableVariable, remainingVariables: ITableVariable[], parent?: ITableHeader): ITableHeader[] {
+    private computeVariableHeaders(currentVariable: ITableVariable, remainingVariables: ITableVariable[]): ITableHeader[] {
         let accessor = this.makeValueAccessor(currentVariable);
         let knownValues = this.skuData.map(accessor);
         let uniqueValues = [...new Set(knownValues)];
@@ -306,11 +309,14 @@ export default class TableController {
                 indentLevel: 42,
                 isColumnHeader: false,
                 isExpanded: false,
-                isRowHeader: false,
-                parent: parent
+                isRowHeader: false
             };
 
             headerObject.columnName = this.computeFullNameOfHeaderChain(headerObject);
+            if (headerObject.canBeExpanded) {
+                headerObject.columnName += ">";
+            }
+
             return headerObject;
         });
 

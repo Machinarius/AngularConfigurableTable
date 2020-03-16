@@ -46,6 +46,8 @@ export class TableStickyColumnsExample {
     this.columnNames = this.tableColumns.map(element => element.columnName);
     this.generatedRows = this.tableData.rows;
     this.uiDataSource = new MatTableDataSource(this.generatedRows);
+
+    console.info("Column names: " + this.columnNames);
   }
 
   public expandColumn(header: ITableHeader) {
