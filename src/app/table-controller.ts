@@ -257,7 +257,7 @@ export default class TableController {
         return this.computeVariableHeaders(currentRow, remainingRows);
     }
     
-    private computeColumnHeaders(columnVariables?: ITableVariable[]): ITableHeader[] {
+    private computeColumnHeaders(columnVariables?: ITableVariable[], parent?: ITableHeader): ITableHeader[] {
         if (!columnVariables) {
             columnVariables = this.chosenColumns;
         }
@@ -268,25 +268,29 @@ export default class TableController {
 
         let [currentColumnVar, ...remainingVariables] = columnVariables;
         let primaryVariableHeaders = this.computeVariableHeaders(currentColumnVar, remainingVariables);
+        if (parent) {
+            primaryVariableHeaders.forEach(pHeader => {
+                pHeader.parent = parent;
+                pHeader.columnName = this.computeFullNameOfHeaderChain(pHeader);
+                pHeader.indentLevel = this.computeHeaderChainDepth(pHeader);
+            });
+        }
         
         if (this.expandedColumns.size == 0) {
             return primaryVariableHeaders;
         }
 
-        let [secondaryVariable, ...tertiaryVariables] = remainingVariables;
-        let secondaryHeaders = this.computeVariableHeaders(secondaryVariable, tertiaryVariables);
-
-        let expandedColumns = primaryVariableHeaders.map(vHeader => {
-            let isExpanded = this.expandedColumns.has(vHeader.columnName);
+        let expandedColumns = primaryVariableHeaders.map(pHeader => {
+            let isExpanded = this.expandedColumns.has(pHeader.columnName);
             if (!isExpanded) {
-                return new Array<ITableHeader>(vHeader);
+                return new Array<ITableHeader>(pHeader);
             }
 
+            let secondaryHeaders = this.computeColumnHeaders(remainingVariables, pHeader);
             if (secondaryHeaders.length > 0) {
-                vHeader.isExpanded = true;
-                secondaryHeaders.forEach(sHeader => sHeader.parent = vHeader);
+                pHeader.isExpanded = true;
             }
-            secondaryHeaders.unshift(vHeader);
+            secondaryHeaders.unshift(pHeader);
 
             return secondaryHeaders;
         }).reduce((acc, item) => acc.concat(item), []);
@@ -313,10 +317,6 @@ export default class TableController {
             };
 
             headerObject.columnName = this.computeFullNameOfHeaderChain(headerObject);
-            if (headerObject.canBeExpanded) {
-                headerObject.columnName += ">";
-            }
-
             return headerObject;
         });
 
@@ -328,7 +328,18 @@ export default class TableController {
             return "";
         }
 
-        return this.computeFullNameOfHeaderChain(header.parent) + `<${header.propertyName}.${header.propertyValue}`;
+        return this.computeFullNameOfHeaderChain(header.parent) + 
+            (header.parent ? "<" : "") +
+            `${header.propertyName}.${header.propertyValue}` +
+            (header.canBeExpanded ? ">" : "");
+    }
+
+    private computeHeaderChainDepth(header?: ITableHeader): number {
+        if (!header) {
+            return 0;
+        }
+
+        return this.computeHeaderChainDepth(header.parent) + 1;
     }
 
     private makeValueAccessor(variable: ITableVariable): (row: ISkuData) => string|number {
