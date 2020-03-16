@@ -44,6 +44,15 @@ export class TableStickyColumnsExample {
     this.generatedRows = this.tableData.rows;
   }
 
+  public expandColumn(header: ITableHeader) {
+    this.tableController.expandColumn(header);
+    this.fetchStateFromTableController();
+  }
+
+  public contractColumn(header: ITableHeader) {
+    throw new Error("Not Implemented");
+  }
+
   public onVariableDropped(event: CdkDragDrop<string[]>) {
     if (event.previousContainer === event.container) {
       moveItemInArray(event.container.data, event.previousIndex, event.currentIndex);

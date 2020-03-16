@@ -38,8 +38,17 @@
 
 <div class="example-container mat-elevation-z8">
   <table mat-table [dataSource]="generatedRows">
+    <!-- BUG?: Columns are only changing when the column names change.
+        This is triggered by changing the first column-->
+
     <ng-container *ngFor="let columnObject of tableColumns" matColumnDef="{{columnObject.columnName}}">
-      <th mat-header-cell *matHeaderCellDef>{{columnObject.label}}</th>
+      <th mat-header-cell *matHeaderCellDef>
+        <span *ngIf="columnObject.canBeExpanded && !columnObject.isExpanded"
+          (click)="expandColumn(columnObject)">&gt;</span>
+        <span *ngIf="columnObject.canBeExpanded && columnObject.isExpanded"
+          (click)="contractColumn(columnObject)">X</span>
+        {{columnObject.label}}
+      </th>
       <td mat-cell *matCellDef="let element" (click)="onCellClicked(element)">
         <span *ngIf="element[columnObject.columnName].isHeader">{{element[columnObject.columnName].headerData.label}}</span>
         <span *ngIf="!element[columnObject.columnName].isHeader">{{element[columnObject.columnName].stringValue}}</span>

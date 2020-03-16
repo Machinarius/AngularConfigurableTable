@@ -20,7 +20,8 @@ export interface ITableHeader {
     canBeExpanded: boolean,
     indentLevel: number,
     isRowHeader: boolean,
-    isColumnHeader: boolean
+    isColumnHeader: boolean,
+    parent?: ITableHeader
 }
 
 export interface IRowElement {
@@ -42,6 +43,7 @@ export default class TableController {
     public availableVariables: ITableVariable[];
     public chosenColumns: ITableVariable[] = [];
     public chosenRows: ITableVariable[] = [];
+    public expandedColumns: Set<ITableHeader>;
 
     private skuData: ISkuData[];
 
@@ -49,6 +51,15 @@ export default class TableController {
         this.skuData = skuData || DEFAULT_DATA;
         this.chosenColumns = [DEFAULT_VARIABLES[0]];
         this.availableVariables = DEFAULT_VARIABLES.splice(1);
+        this.expandedColumns = new Set<ITableHeader>();
+    }
+
+    public expandColumn(header: ITableHeader) {
+        this.expandedColumns.add(header);
+    }
+
+    public contractColumn(header: ITableHeader) {
+        this.expandedColumns.delete(header);
     }
 
     public get tableData(): ITableData {
@@ -63,7 +74,7 @@ export default class TableController {
         }
 
         if (rowHeaders.length > 0) {
-            columnHeaders.unshift(this.createRowHeadersElement(ColumnHeader));
+            columnHeaders.unshift(this.createRowHeadersElement());
             columnHeaders.push(this.createRowSumColumnHeader());
 
             rowHeaders.push(this.createColumnSumRowHeader());
@@ -92,7 +103,6 @@ export default class TableController {
             let key = keyAndCell[0];
             let cell = keyAndCell[1];
 
-            console.log(`key=${key}=${cell.stringValue}`);
             rowData[key] = cell;
         });
 
@@ -176,35 +186,47 @@ export default class TableController {
     }
 
     private createColumnSumRowHeader(): ITableHeader {
-        let rowColumnHeader = new RowHeader({
+        let rowColumnHeader: ITableHeader = {
             propertyValue: "",
             propertyName: "columnSum",
             columnName: "columnSum",
             canBeExpanded: false,
-            label: "Totales"
-        });
+            label: "Totales",
+            indentLevel: 0,
+            isColumnHeader: false,
+            isExpanded: false,
+            isRowHeader: false
+        };
         return rowColumnHeader;
     }
 
     private createRowSumColumnHeader(): ITableHeader {
-        let rowSumHeader = new ColumnHeader({
+        let rowSumHeader: ITableHeader = {
             propertyValue: "",
             propertyName: "rowSum",
             columnName: "rowSum",
             canBeExpanded: false,
-            label: "Totales"
-        });
+            label: "Totales",
+            indentLevel: 0,
+            isColumnHeader: false,
+            isExpanded: false,
+            isRowHeader: false
+        };
         return rowSumHeader;
     }
 
-    private createRowHeadersElement<THeaderType extends BaseHeader>(HeaderConstructor: new (data: IHeaderData) => THeaderType): ITableHeader {
-        let rowsColumnHeader = new HeaderConstructor({
+    private createRowHeadersElement(): ITableHeader {
+        let rowsColumnHeader: ITableHeader = {
             propertyValue: "",
             propertyName: "rowHeaders",
             columnName: "rowHeaders",
             canBeExpanded: false,
-            label: ""
-        });
+            label: "",
+            indentLevel: 0,
+            isColumnHeader: false,
+            isExpanded: false,
+            isRowHeader: false
+        };
         return rowsColumnHeader;
     }
 
@@ -218,33 +240,40 @@ export default class TableController {
         }
 
         let [currentRow, ...remainingRows] = rows;
-        return this.computeVariableHeaders(RowHeader, currentRow, remainingRows);
+        return this.computeVariableHeaders(currentRow, remainingRows);
     }
     
-    private computeColumnHeaders(columns?: ITableVariable[]): ITableHeader[] {
-        if (!columns) {
-            columns = this.chosenColumns;
+    private computeColumnHeaders(columnVariables?: ITableVariable[]): ITableHeader[] {
+        if (!columnVariables) {
+            columnVariables = this.chosenColumns;
         }
 
-        if (columns.length == 0) {
+        if (columnVariables.length == 0) {
             return [];
         }
 
-        let [currentColumn, ...remainingColumns] = columns;
-        return this.computeVariableHeaders(ColumnHeader, currentColumn, remainingColumns);
+        let [currentColumnVar, ...remainingVariables] = columnVariables;
+        return this.computeVariableHeaders(currentColumnVar, remainingVariables).concat(this.computeColumnHeaders(remainingVariables));
     }
 
-    private computeVariableHeaders<THeaderType extends BaseHeader>(HeaderConstructor: new (data: IHeaderData) => THeaderType, currentVariable: ITableVariable, remainingVariables: ITableVariable[]): ITableHeader[] {
+    private computeVariableHeaders(currentVariable: ITableVariable, remainingVariables: ITableVariable[]): ITableHeader[] {
         let accessor = this.makeValueAccessor(currentVariable);
         let knownValues = this.skuData.map(accessor);
         let uniqueValues = [...new Set(knownValues)];
-        let columnHeaders = uniqueValues.map(value => new HeaderConstructor({
-            propertyName: currentVariable.name,
-            propertyValue: value,
-            columnName: `${currentVariable.name}.${value}`,
-            label: this.formatValue(value),
-            canBeExpanded: remainingVariables.length > 0
-        }));
+        let canBeExpanded = remainingVariables.length > 0;
+        let columnHeaders = uniqueValues.map<ITableHeader>(value => {
+            return {
+                propertyName: currentVariable.name,
+                propertyValue: value,
+                columnName: `${currentVariable.name}.${value}`,
+                label: this.formatValue(value),
+                canBeExpanded: canBeExpanded,
+                indentLevel: 42,
+                isColumnHeader: false,
+                isExpanded: false,
+                isRowHeader: false
+            };
+        });
 
         return columnHeaders;
     }
@@ -260,52 +289,6 @@ export default class TableController {
         }
         
         return value.toString();
-    }
-}
-
-interface IHeaderData {
-    propertyName: string,    
-    propertyValue: string | number,
-    columnName: string,
-    label: string,
-    canBeExpanded: boolean
-}
-
-abstract class BaseHeader implements ITableHeader {
-    public propertyName: string;    
-    public propertyValue: string | number;
-    public columnName: string;
-    public label: string;
-    public isExpanded: boolean;
-    public canBeExpanded: boolean;
-    public indentLevel: number;
-
-    constructor(data: IHeaderData) {
-        this.propertyName = data.propertyName;
-        this.propertyValue = data.propertyValue;
-        this.columnName = data.columnName;
-        this.label = data.label;
-        this.canBeExpanded = data.canBeExpanded;
-    }
-
-    public get isRowHeader(): boolean {
-        return false;
-    }
-
-    public get isColumnHeader(): boolean {
-        return false;
-    }
-}
-
-class RowHeader extends BaseHeader {
-    public get isRowHeader(): boolean {
-        return true;
-    }
-}
-
-class ColumnHeader extends BaseHeader {
-    public get isColumnHeader(): boolean {
-        return true;
     }
 }
 
