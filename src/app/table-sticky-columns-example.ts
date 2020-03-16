@@ -1,6 +1,7 @@
 import {Component} from '@angular/core';
 import {CdkDragDrop, moveItemInArray, transferArrayItem} from '@angular/cdk/drag-drop';
 import TableController, { ITableHeader, ITableVariable, ITableData, IRowElement } from './table-controller';
+import { MatTableDataSource } from '@angular/material/table';
 
 /**
  * @title Table with sticky columns
@@ -22,6 +23,8 @@ export class TableStickyColumnsExample {
   public tableData: ITableData;
   public generatedRows: IRowElement[];
 
+  public uiDataSource: MatTableDataSource<IRowElement>;
+
   constructor() {
     this.tableController = new TableController();
     this.fetchStateFromTableController();
@@ -42,15 +45,21 @@ export class TableStickyColumnsExample {
     this.tableColumns = this.tableData.columnHeaders;
     this.columnNames = this.tableColumns.map(element => element.columnName);
     this.generatedRows = this.tableData.rows;
+    this.uiDataSource = new MatTableDataSource(this.generatedRows);
   }
 
   public expandColumn(header: ITableHeader) {
+    console.log("trying to expand " + header.columnName);
+
     this.tableController.expandColumn(header);
     this.fetchStateFromTableController();
   }
 
   public contractColumn(header: ITableHeader) {
-    throw new Error("Not Implemented");
+    console.log("trying to contract " + header.columnName);
+
+    this.tableController.contractColumn(header);
+    this.fetchStateFromTableController();
   }
 
   public onVariableDropped(event: CdkDragDrop<string[]>) {
@@ -65,6 +74,10 @@ export class TableStickyColumnsExample {
 
     this.sendStateToTableController();
     this.fetchStateFromTableController();
+  }
+
+  public generateColumnTrackingId(column: ITableHeader) {
+    return column.columnName;
   }
 
   public onCellClicked(cellData: IRowElement) {

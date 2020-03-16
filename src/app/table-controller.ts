@@ -43,7 +43,7 @@ export default class TableController {
     public availableVariables: ITableVariable[];
     public chosenColumns: ITableVariable[] = [];
     public chosenRows: ITableVariable[] = [];
-    public expandedColumns: Set<ITableHeader>;
+    public expandedColumns: Set<string>;
 
     private skuData: ISkuData[];
 
@@ -51,15 +51,15 @@ export default class TableController {
         this.skuData = skuData || DEFAULT_DATA;
         this.chosenColumns = [DEFAULT_VARIABLES[0]];
         this.availableVariables = DEFAULT_VARIABLES.splice(1);
-        this.expandedColumns = new Set<ITableHeader>();
+        this.expandedColumns = new Set<string>();
     }
 
     public expandColumn(header: ITableHeader) {
-        this.expandedColumns.add(header);
+        this.expandedColumns.add(header.columnName);
     }
 
     public contractColumn(header: ITableHeader) {
-        this.expandedColumns.delete(header);
+        this.expandedColumns.delete(header.columnName);
     }
 
     public get tableData(): ITableData {
@@ -163,14 +163,26 @@ export default class TableController {
         }
 
         let elegibilityFilters: ((_: ISkuData) => boolean)[] = [];
-        if (columnHeader.propertyName != "rowSum") {
-            elegibilityFilters.push(
-                (dataItem) => dataItem[columnHeader.propertyName] === columnHeader.propertyValue);
-        }
+        let colHeaderIterator: ITableHeader | undefined = columnHeader;
+        while (colHeaderIterator != undefined) {
+            let currentColHeader: ITableHeader = colHeaderIterator;
+            if (colHeaderIterator.propertyName != "rowSum") {
+                elegibilityFilters.push(
+                    (dataItem) => dataItem[currentColHeader.propertyName] === currentColHeader.propertyValue);
+            }
 
-        if (rowHeader.propertyName != "columnSum") {
-            elegibilityFilters.push(
-                (dataItem) => dataItem[rowHeader.propertyName] === rowHeader.propertyValue);
+            colHeaderIterator = currentColHeader.parent;
+        } 
+
+        let rowHeaderIterator: ITableHeader | undefined = rowHeader;
+        while (rowHeaderIterator != undefined) {
+            let currentRowHeader: ITableHeader = rowHeaderIterator;
+            if (currentRowHeader.propertyName != "columnSum") {
+                elegibilityFilters.push(
+                    (dataItem) => dataItem[currentRowHeader.propertyName] === currentRowHeader.propertyValue);
+            }
+
+            rowHeaderIterator = currentRowHeader.parent;
         }
 
         let cellValue = this.skuData
@@ -253,29 +265,64 @@ export default class TableController {
         }
 
         let [currentColumnVar, ...remainingVariables] = columnVariables;
-        return this.computeVariableHeaders(currentColumnVar, remainingVariables).concat(this.computeColumnHeaders(remainingVariables));
+        let primaryVariableHeaders = this.computeVariableHeaders(currentColumnVar, remainingVariables);
+        
+        if (this.expandedColumns.size == 0) {
+            return primaryVariableHeaders;
+        }
+
+        let expandedColumns = primaryVariableHeaders.map(vHeader => {
+            let isExpanded = this.expandedColumns.has(vHeader.columnName);
+            if (!isExpanded) {
+                return new Array<ITableHeader>(vHeader);
+            }
+
+            let [secondaryVariable, ...tertiaryVariables] = remainingVariables;
+            let secondaryHeaders = this.computeVariableHeaders(secondaryVariable, tertiaryVariables, vHeader);
+
+            if (secondaryHeaders.length > 0) {
+                vHeader.isExpanded = true;
+            }
+            secondaryHeaders.unshift(vHeader);
+
+            return secondaryHeaders;
+        }).reduce((acc, item) => acc.concat(item), []);
+
+        return expandedColumns;
     }
 
-    private computeVariableHeaders(currentVariable: ITableVariable, remainingVariables: ITableVariable[]): ITableHeader[] {
+    private computeVariableHeaders(currentVariable: ITableVariable, remainingVariables: ITableVariable[], parent?: ITableHeader): ITableHeader[] {
         let accessor = this.makeValueAccessor(currentVariable);
         let knownValues = this.skuData.map(accessor);
         let uniqueValues = [...new Set(knownValues)];
         let canBeExpanded = remainingVariables.length > 0;
         let columnHeaders = uniqueValues.map<ITableHeader>(value => {
-            return {
+            let headerObject = {
                 propertyName: currentVariable.name,
                 propertyValue: value,
-                columnName: `${currentVariable.name}.${value}`,
+                columnName: "",
                 label: this.formatValue(value),
                 canBeExpanded: canBeExpanded,
                 indentLevel: 42,
                 isColumnHeader: false,
                 isExpanded: false,
-                isRowHeader: false
+                isRowHeader: false,
+                parent: parent
             };
+
+            headerObject.columnName = this.computeFullNameOfHeaderChain(headerObject);
+            return headerObject;
         });
 
         return columnHeaders;
+    }
+
+    private computeFullNameOfHeaderChain(header?: ITableHeader): string {
+        if (!header) {
+            return "";
+        }
+
+        return this.computeFullNameOfHeaderChain(header.parent) + `<${header.propertyName}.${header.propertyValue}`;
     }
 
     private makeValueAccessor(variable: ITableVariable): (row: ISkuData) => string|number {
