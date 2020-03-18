@@ -1,7 +1,8 @@
-import {Component} from '@angular/core';
+import {Component, ViewChild} from '@angular/core';
 import {CdkDragDrop, moveItemInArray, transferArrayItem} from '@angular/cdk/drag-drop';
 import TableController, { ITableHeader, ITableVariable, ITableData, IRowElement } from './table-controller';
 import { MatTableDataSource } from '@angular/material/table';
+import { MatSort } from '@angular/material/sort';
 
 /**
  * @title Table with sticky columns
@@ -23,7 +24,15 @@ export class TableStickyColumnsExample {
   public tableData: ITableData;
   public generatedRows: IRowElement[];
 
+  public tableCanSortColumns: boolean;
+
   public uiDataSource: MatTableDataSource<IRowElement>;
+  @ViewChild(MatSort) 
+  public set tableSort(sort: MatSort) {
+    if (this.uiDataSource) {
+      this.uiDataSource.sort = sort;
+    }
+  }
 
   constructor() {
     this.tableController = new TableController();
@@ -45,9 +54,20 @@ export class TableStickyColumnsExample {
     this.tableColumns = this.tableData.columnHeaders;
     this.columnNames = this.tableColumns.map(element => element.columnName);
     this.generatedRows = this.tableData.rows;
+    this.tableCanSortColumns = this.tableData.canSortColumns;
     this.uiDataSource = new MatTableDataSource(this.generatedRows);
+    this.uiDataSource.sortingDataAccessor = this.getSortingData;
 
     console.info("Column names: " + this.columnNames);
+  }
+
+  private getSortingData(data: IRowElement, sortHeaderId: string): string | number {
+    let cell = data[sortHeaderId];
+    if (cell.isHeader) {
+      throw new Error("Header rows can not be sorted - This may be caused by an bug deeper in the table controller or view code");
+    }
+
+    return cell.numberValue!;
   }
 
   public expandColumn(header: ITableHeader) {

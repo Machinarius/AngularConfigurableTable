@@ -31,12 +31,14 @@ export interface IRowElement {
 export interface ITableCell {
     isHeader: boolean,
     headerData?: ITableHeader,
-    stringValue?: string
+    stringValue?: string,
+    numberValue?: number
 }
 
 export interface ITableData {
     columnHeaders: ITableHeader[],
-    rows: IRowElement[]
+    rows: IRowElement[],
+    canSortColumns: boolean
 }
 
 export default class TableController {
@@ -72,7 +74,8 @@ export default class TableController {
         if (columnHeaders.length == 0 && rowHeaders.length == 0) {
             return {
                 columnHeaders: columnHeaders,
-                rows: []
+                rows: [],
+                canSortColumns: false
             };
         }
 
@@ -92,9 +95,11 @@ export default class TableController {
             rows = this.createRowSumRow(rowHeaders);
         }
 
+        let canSortColumns = !rowHeaders.some((rHeader) => rHeader.isExpanded);
         return {
           columnHeaders: columnHeaders,
-          rows: rows  
+          rows: rows,
+          canSortColumns: canSortColumns
         };
     }
     
@@ -196,7 +201,8 @@ export default class TableController {
 
         return {
             isHeader: false,
-            stringValue: cellLabel
+            stringValue: cellLabel,
+            numberValue: cellValue
         };
     }
 
