@@ -293,7 +293,7 @@ export default class TableController {
                 return new Array<ITableHeader>(pHeader);
             }
 
-            let secondaryHeaders = this.computeColumnHeaders(remainingRowVars, pHeader);
+            let secondaryHeaders = this.computeRowHeaders(remainingRowVars, pHeader);
             if (secondaryHeaders.length > 0) {
                 pHeader.isExpanded = true;
             }

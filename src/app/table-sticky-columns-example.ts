@@ -92,14 +92,14 @@ export class TableStickyColumnsExample {
   }
 
   public expandRow(header: ITableHeader) {
-    console.log("trying to expand row" + header.columnName);
+    console.log("trying to expand row " + header.columnName);
 
     this.tableController.expandRow(header);
     this.fetchStateFromTableController();
   }
 
   public contractRow(header: ITableHeader) {
-    console.log("trying to contract row" + header.columnName);
+    console.log("trying to contract row " + header.columnName);
 
     this.tableController.contractRow(header);
     this.fetchStateFromTableController();
