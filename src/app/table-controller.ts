@@ -46,6 +46,7 @@ export default class TableController {
     public chosenColumns: ITableVariable[] = [];
     public chosenRows: ITableVariable[] = [];
     public expandedColumns: Set<string>;
+    public expandedRows: Set<string>;
 
     private skuData: ISkuData[];
 
@@ -54,6 +55,7 @@ export default class TableController {
         this.chosenColumns = [DEFAULT_VARIABLES[0]];
         this.availableVariables = DEFAULT_VARIABLES.splice(1);
         this.expandedColumns = new Set<string>();
+        this.expandedRows = new Set<string>();
     }
 
     public expandColumn(header: ITableHeader) {
@@ -65,6 +67,17 @@ export default class TableController {
         let columnsToContract = [...this.expandedColumns].filter(colName => colName.startsWith(header.columnName));
         columnsToContract.forEach(colName => this.expandedColumns.delete(colName));
         console.log("Expanded columns: " + [...this.expandedColumns]);
+    }
+
+    public expandRow(header: ITableHeader) {
+        this.expandedRows.add(header.columnName);
+        console.log("Expanded rows: " + [...this.expandedRows]);
+    }
+
+    public contractRow(header: ITableHeader) {
+        let rowsToContract = [...this.expandedRows].filter(rowName => rowName.startsWith(header.columnName));
+        rowsToContract.forEach(colName => this.expandedRows.delete(colName));
+        console.log("Expanded rows: " + [...this.expandedRows]);
     }
 
     public get tableData(): ITableData {
@@ -251,17 +264,45 @@ export default class TableController {
         return rowsColumnHeader;
     }
 
-    private computeRowHeaders(rows?: ITableVariable[]): ITableHeader[] {
-        if (!rows) {
-            rows = this.chosenRows;
+    private computeRowHeaders(rowVariables?: ITableVariable[], parent?: ITableHeader): ITableHeader[] {
+        if (!rowVariables) {
+            rowVariables = this.chosenRows;
         }
 
-        if (rows.length == 0) {
+        if (rowVariables.length == 0) {
             return [];
         }
 
-        let [currentRow, ...remainingRows] = rows;
-        return this.computeVariableHeaders(currentRow, remainingRows);
+        let [currentRowVar, ...remainingRowVars] = rowVariables;
+        let primaryVariableHeaders = this.computeVariableHeaders(currentRowVar, remainingRowVars);
+        if (parent) {
+            primaryVariableHeaders.forEach(pHeader => {
+                pHeader.parent = parent;
+                pHeader.columnName = this.computeFullNameOfHeaderChain(pHeader);
+                pHeader.indentLevel = this.computeHeaderChainDepth(pHeader);
+            });
+        }
+        
+        if (this.expandedRows.size == 0) {
+            return primaryVariableHeaders;
+        }
+
+        let expandedRows = primaryVariableHeaders.map(pHeader => {
+            let isExpanded = this.expandedRows.has(pHeader.columnName);
+            if (!isExpanded) {
+                return new Array<ITableHeader>(pHeader);
+            }
+
+            let secondaryHeaders = this.computeColumnHeaders(remainingRowVars, pHeader);
+            if (secondaryHeaders.length > 0) {
+                pHeader.isExpanded = true;
+            }
+            secondaryHeaders.unshift(pHeader);
+
+            return secondaryHeaders;
+        }).reduce((acc, item) => acc.concat(item), []);
+
+        return expandedRows;
     }
     
     private computeColumnHeaders(columnVariables?: ITableVariable[], parent?: ITableHeader): ITableHeader[] {
@@ -273,8 +314,8 @@ export default class TableController {
             return [];
         }
 
-        let [currentColumnVar, ...remainingVariables] = columnVariables;
-        let primaryVariableHeaders = this.computeVariableHeaders(currentColumnVar, remainingVariables);
+        let [currentColumnVar, ...remainingColumnVars] = columnVariables;
+        let primaryVariableHeaders = this.computeVariableHeaders(currentColumnVar, remainingColumnVars);
         if (parent) {
             primaryVariableHeaders.forEach(pHeader => {
                 pHeader.parent = parent;
@@ -293,7 +334,7 @@ export default class TableController {
                 return new Array<ITableHeader>(pHeader);
             }
 
-            let secondaryHeaders = this.computeColumnHeaders(remainingVariables, pHeader);
+            let secondaryHeaders = this.computeColumnHeaders(remainingColumnVars, pHeader);
             if (secondaryHeaders.length > 0) {
                 pHeader.isExpanded = true;
             }

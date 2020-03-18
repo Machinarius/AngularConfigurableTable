@@ -57,7 +57,13 @@
       </th>
     </ng-container>
     <td mat-cell *matCellDef="let element" (click)="onCellClicked(element)">
-      <span *ngIf="element[columnObject.columnName].isHeader">{{element[columnObject.columnName].headerData.label}}</span>
+      <span *ngIf="element[columnObject.columnName].isHeader">
+        <span *ngIf="element[columnObject.columnName].headerData.canBeExpanded && !element[columnObject.columnName].headerData.isExpanded"
+          (click)="expandRow(element[columnObject.columnName].headerData)">&gt;</span>
+        <span *ngIf="element[columnObject.columnName].headerData.canBeExpanded && element[columnObject.columnName].headerData.isExpanded"
+          (click)="contractRow(element[columnObject.columnName].headerData)">X</span>
+        {{element[columnObject.columnName].headerData.label}}
+      </span>
       <span *ngIf="!element[columnObject.columnName].isHeader">{{element[columnObject.columnName].stringValue}}</span>
     </td>
   </ng-container>
@@ -76,7 +82,13 @@
       {{columnObject.label}}
     </th>
     <td mat-cell *matCellDef="let element" (click)="onCellClicked(element)">
-      <span *ngIf="element[columnObject.columnName].isHeader">{{element[columnObject.columnName].headerData.label}}</span>
+      <span *ngIf="element[columnObject.columnName].isHeader">
+        <span *ngIf="element[columnObject.columnName].headerData.canBeExpanded && !element[columnObject.columnName].headerData.isExpanded"
+          (click)="expandRow(element[columnObject.columnName].headerData)">&gt;</span>
+        <span *ngIf="element[columnObject.columnName].headerData.canBeExpanded && element[columnObject.columnName].headerData.isExpanded"
+          (click)="contractRow(element[columnObject.columnName].headerData)">X</span>
+        {{element[columnObject.columnName].headerData.label}}
+      </span>
       <span *ngIf="!element[columnObject.columnName].isHeader">{{element[columnObject.columnName].stringValue}}</span>
     </td>
   </ng-container>

@@ -56,9 +56,16 @@ export class TableStickyColumnsExample {
     this.generatedRows = this.tableData.rows;
     this.tableCanSortColumns = this.tableData.canSortColumns;
     this.uiDataSource = new MatTableDataSource(this.generatedRows);
-    this.uiDataSource.sortingDataAccessor = this.getSortingData;
+
+    if (this.tableCanSortColumns) {
+      this.uiDataSource.sortingDataAccessor = this.getSortingData;
+    }
 
     console.info("Column names: " + this.columnNames);
+    if (this.columnNames.some(colName => colName == "rowHeaders")) {
+      let rowNames = this.generatedRows.map(rowObject => rowObject["rowHeaders"].headerData?.columnName);
+      console.log("Row names: " + rowNames);
+    }
   }
 
   private getSortingData(data: IRowElement, sortHeaderId: string): string | number {
@@ -81,6 +88,20 @@ export class TableStickyColumnsExample {
     console.log("trying to contract " + header.columnName);
 
     this.tableController.contractColumn(header);
+    this.fetchStateFromTableController();
+  }
+
+  public expandRow(header: ITableHeader) {
+    console.log("trying to expand row" + header.columnName);
+
+    this.tableController.expandRow(header);
+    this.fetchStateFromTableController();
+  }
+
+  public contractRow(header: ITableHeader) {
+    console.log("trying to contract row" + header.columnName);
+
+    this.tableController.contractRow(header);
     this.fetchStateFromTableController();
   }
 
